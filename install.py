@@ -9,8 +9,11 @@ from shutil import copytree
 import re
 
 def extract_project_version(file_path):
-    with open(file_path, 'r') as file:
-        content = file.read()
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+    except Exception:
+        return None
 
     # 使用正则表达式匹配 #define PROJECT_VERSION "x.x.x"
     match = re.search(r'#define\s+PROJECT_VERSION\s+"([0-9.]+)"', content)
@@ -19,9 +22,50 @@ def extract_project_version(file_path):
     return None
 
 
+def resolve_project_version():
+    """Resolve project version from generated version_config.h or fallback to version.cmake.
+    Works whether the script is run from the repository root or from a build/package directory.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Try generated header first (Windows build layout)
+    vh_candidates = [
+        os.path.abspath(os.path.join(script_dir, "..", "version_config.h")),
+        os.path.abspath(os.path.join(script_dir, "version_config.h")),
+        os.path.abspath(os.path.join(script_dir, "..", "..", "version_config.h")),
+    ]
+    for path in vh_candidates:
+        if os.path.exists(path):
+            ver = extract_project_version(path)
+            if ver:
+                return ver
+
+    # Fallback: read from version.cmake in the repository
+    cmake_candidates = [
+        os.path.abspath(os.path.join(script_dir, "..", "version.cmake")),
+        os.path.abspath(os.path.join(script_dir, "..", "..", "version.cmake")),
+        os.path.abspath(os.path.join(script_dir, "version.cmake")),
+    ]
+    for path in cmake_candidates:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    content = f.read()
+                m = re.search(r'set\(\s*TC_APP_VERSION\s+([0-9.]+)\s*\)', content)
+                if m:
+                    return m.group(1)
+            except Exception:
+                pass
+
+    # Last resort
+    return "0.0.0"
+
+
 def collceion_program_files(force_update, in_target_path):
 
-    base_path = "./../"
+    # Resolve base path relative to this script so it works both from repo root and from build/package
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.path.abspath(os.path.join(script_dir, os.pardir)) + os.sep
 
     print("the path is : {}".format(base_path))
 
@@ -92,6 +136,7 @@ def collceion_program_files(force_update, in_target_path):
 
     resources_file_path = []
     #resources_file_path.append("resources/MicrosoftYaqiHei-2.ttf")
+    resources_path = os.path.join(base_path, "resources")
 
     folders_path = []
     folders_path.append(base_path + "iconengines")
@@ -156,7 +201,8 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
         target_path = sys.argv[1]
     else:
-        target_path = "release_" + extract_project_version("../version_config.h")
+        version = resolve_project_version()
+        target_path = "release_" + (version or "0.0.0")
         target_path = target_path.replace(".", "_")
 
     collceion_program_files(force_update, target_path)
