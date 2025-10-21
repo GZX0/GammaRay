@@ -1,0 +1,39 @@
+name: Build Artifacts
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Configure CMake (Release)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cmake --build build --config Release -- -j$(nproc)
+
+      - name: Install to staging dir
+        run: |
+          cmake --install build --prefix "${{ github.workspace }}/artifact"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gammaray-linux
+          path: |
+            artifact/**
+          if-no-files-found: error
