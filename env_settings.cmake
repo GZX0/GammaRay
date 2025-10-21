@@ -1,4 +1,25 @@
-set(VCPKG_ROOT C:/source/vcpkg)
-set(QT_ROOT C:/Qt6.8.3/6.8.3/msvc2022_64)
-set(VK_SDK_ROOT C:/VulkanSDK/1.3.290.0)
+# Default environment settings.
+# On Windows, keep the original paths if the user hasn't provided overrides.
+# On non-Windows platforms (Linux/macOS), prefer environment variables if set.
 
+if (WIN32)
+    if (NOT DEFINED VCPKG_ROOT)
+        set(VCPKG_ROOT C:/source/vcpkg)
+    endif()
+    if (NOT DEFINED QT_ROOT)
+        set(QT_ROOT C:/Qt6.8.3/6.8.3/msvc2022_64)
+    endif()
+    if (NOT DEFINED VK_SDK_ROOT)
+        set(VK_SDK_ROOT C:/VulkanSDK/1.3.290.0)
+    endif()
+else()
+    if (NOT DEFINED VCPKG_ROOT AND DEFINED ENV{VCPKG_ROOT})
+        set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+    endif()
+    if (NOT DEFINED QT_ROOT AND DEFINED ENV{QT_ROOT})
+        set(QT_ROOT $ENV{QT_ROOT})
+    endif()
+    if (NOT DEFINED VK_SDK_ROOT AND DEFINED ENV{VK_SDK_ROOT})
+        set(VK_SDK_ROOT $ENV{VK_SDK_ROOT})
+    endif()
+endif()
