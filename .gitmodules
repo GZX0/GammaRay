@@ -1,60 +1,60 @@
 [submodule "deps/tc_3rdparty"]
-	path = deps/tc_3rdparty
-	url = git@github.com:RGAA-Software/tc_3rdparty.git
+    path = deps/tc_3rdparty
+    url = https://github.com/RGAA-Software/tc_3rdparty.git
 [submodule "deps/tc_client_web"]
-	path = deps/tc_client_web
-	url = git@github.com:RGAA-Software/tc_client_web.git
+    path = deps/tc_client_web
+    url = https://github.com/RGAA-Software/tc_client_web.git
 [submodule "deps/tc_common_new"]
-	path = deps/tc_common_new
-	url = git@github.com:RGAA-Software/tc_common_new.git
+    path = deps/tc_common_new
+    url = https://github.com/RGAA-Software/tc_common_new.git
 [submodule "deps/tc_message_new"]
-	path = deps/tc_message_new
-	url = git@github.com:RGAA-Software/tc_message_new.git
+    path = deps/tc_message_new
+    url = https://github.com/RGAA-Software/tc_message_new.git
 [submodule "deps/tc_steam_manager_new"]
-	path = deps/tc_steam_manager_new
-	url = git@github.com:RGAA-Software/tc_steam_manager_new.git
+    path = deps/tc_steam_manager_new
+    url = https://github.com/RGAA-Software/tc_steam_manager_new.git
 [submodule "deps/tc_controller"]
-	path = deps/tc_controller
-	url = git@github.com:RGAA-Software/tc_controller.git
+    path = deps/tc_controller
+    url = https://github.com/RGAA-Software/tc_controller.git
 [submodule "deps/tc_capture_new"]
-	path = deps/tc_capture_new
-	url = git@github.com:RGAA-Software/tc_capture_new.git
+    path = deps/tc_capture_new
+    url = https://github.com/RGAA-Software/tc_capture_new.git
 [submodule "deps/tc_encoder_new"]
-	path = deps/tc_encoder_new
-	url = git@github.com:RGAA-Software/tc_encoder_new.git
+    path = deps/tc_encoder_new
+    url = https://github.com/RGAA-Software/tc_encoder_new.git
 [submodule "deps/tc_opus_codec_new"]
-	path = deps/tc_opus_codec_new
-	url = git@github.com:RGAA-Software/tc_opus_codec_new.git
+    path = deps/tc_opus_codec_new
+    url = https://github.com/RGAA-Software/tc_opus_codec_new.git
 [submodule "deps/tc_client_sdk_new"]
-	path = deps/tc_client_sdk_new
-	url = git@github.com:RGAA-Software/tc_client_sdk_new.git
+    path = deps/tc_client_sdk_new
+    url = https://github.com/RGAA-Software/tc_client_sdk_new.git
 [submodule "deps/tc_qt_widget"]
-	path = deps/tc_qt_widget
-	url = git@github.com:RGAA-Software/tc_qt_widget.git
+    path = deps/tc_qt_widget
+    url = https://github.com/RGAA-Software/tc_qt_widget.git
 [submodule "src/render/plugins/tc_vr_plugin"]
-	path = src/render/plugins/tc_vr_plugin
-	url = git@github.com:RGAA-Software/tc_vr_plugin.git
+    path = src/render/plugins/tc_vr_plugin
+    url = https://github.com/RGAA-Software/tc_vr_plugin.git
 [submodule "src/render/plugins/file_transfer/file_transmission_server"]
-	path = src/render/plugins/file_transfer/file_transmission_server
-	url = git@github.com:ChengduDreamer/file_transmission_server.git
+    path = src/render/plugins/file_transfer/file_transmission_server
+    url = https://github.com/ChengduDreamer/file_transmission_server.git
 [submodule "deps/tc_manager_client"]
-	path = deps/tc_manager_client
-	url = git@github.com:RGAA-Software/tc_manager_client.git
+    path = deps/tc_manager_client
+    url = https://github.com/RGAA-Software/tc_manager_client.git
 [submodule "deps/tc_relay_client"]
-	path = deps/tc_relay_client
-	url = git@github.com:RGAA-Software/tc_relay_client.git
+    path = deps/tc_relay_client
+    url = https://github.com/RGAA-Software/tc_relay_client.git
 [submodule "deps/tc_server_protocol"]
-	path = deps/tc_server_protocol
-	url = git@github.com:RGAA-Software/tc_protocol.git
+    path = deps/tc_server_protocol
+    url = https://github.com/RGAA-Software/tc_protocol.git
 [submodule "deps/tc_spvr_client"]
-	path = deps/tc_spvr_client
-	url = git@github.com:RGAA-Software/tc_spvr_client.git
+    path = deps/tc_spvr_client
+    url = https://github.com/RGAA-Software/tc_spvr_client.git
 [submodule "deps/tc_webrtc_client"]
-	path = deps/tc_webrtc_client
-	url = git@github.com:RGAA-Software/tc_webrtc_client.git
+    path = deps/tc_webrtc_client
+    url = https://github.com/RGAA-Software/tc_webrtc_client.git
 [submodule "deps/tc_account_sdk"]
-	path = deps/tc_account_sdk
-	url = git@github.com:RGAA-Software/tc_account_sdk.git
+    path = deps/tc_account_sdk
+    url = https://github.com/RGAA-Software/tc_account_sdk.git
 [submodule "deps/tc_profile_client"]
-	path = deps/tc_profile_client
-	url = git@github.com:RGAA-Software/tc_profile_client.git
+    path = deps/tc_profile_client
+    url = https://github.com/RGAA-Software/tc_profile_client.git
