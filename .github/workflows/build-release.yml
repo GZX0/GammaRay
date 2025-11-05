@@ -33,10 +33,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build pkg-config python3 python3-pip git
-      - name: Setup common tools (Windows)
+      - name: Setup CMake
         if: runner.os == 'Windows'
-        run: |
-          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' ninja python --no-progress
+        uses: jwlawson/actions-setup-cmake@v2.0
+        with:
+          cmake-version: '4.x'
+      
+      - name: Setup Ninja
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@master
+      
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
       - name: Install system deps (Linux)
         if: runner.os == 'Linux'
@@ -76,7 +87,7 @@ jobs:
           cmake --version || true
           ninja --version || true
           python3 --version || python --version || true
-          if [ "${{ runner.os }}" = "Windows" ]; then where ninja || where cmake || true; fi
+          if [ "${{ runner.os }}" = "Windows" ]; then where ninja || where cmake || where python || true; fi
 
       - name: Configure with CMake (Linux)
         if: runner.os == 'Linux'
