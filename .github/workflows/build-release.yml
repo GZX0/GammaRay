@@ -85,7 +85,7 @@ jobs:
           try { C:/source/vcpkg/vcpkg.exe integrate install } catch { }
           echo "VCPKG_ROOT=C:/source/vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           # Install required packages
-          C:/source/vcpkg/vcpkg.exe install qt6-base qt6-tools qt6-charts qt6-svg qt6-websockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
+          C:/source/vcpkg/vcpkg.exe install qtbase qttools qtcharts qtsvg qtwebsockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
 
       - name: Install vcpkg (Linux)
         if: runner.os == 'Linux'
@@ -96,7 +96,7 @@ jobs:
           # Set environment variable for subsequent steps
           echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
           # Install required packages
-          $HOME/vcpkg/vcpkg install qt6-base qt6-tools qt6-charts qt6-svg qt6-websockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-linux
+          $HOME/vcpkg/vcpkg install qtbase qttools qtcharts qtsvg qtwebsockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-linux
 
       - name: Show info
         run: |
