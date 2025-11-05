@@ -1,0 +1,104 @@
+name: Windows Build with vcpkg
+
+on:
+  push:
+    branches: [ main, develop, ci/windows-qemu-vcpkg-build ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  BUILD_TYPE: Release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Set up Visual Studio environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+        
+    - name: Cache vcpkg dependencies
+      uses: actions/cache@v4
+      id: vcpkg-cache
+      with:
+        path: C:/vcpkg/installed
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('deps/tc_3rdparty/vcpkg/**') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+          
+    - name: Set up vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+      run: |
+        cd deps/tc_3rdparty/vcpkg
+        .\bootstrap-vcpkg.bat
+        
+    - name: Install vcpkg dependencies
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+      run: |
+        cd deps/tc_3rdparty/vcpkg
+        .\vcpkg.exe install gflags:x64-windows
+        .\vcpkg.exe install sqlite3:x64-windows
+        .\vcpkg.exe install detours:x64-windows
+        .\vcpkg.exe install gtest:x64-windows
+        .\vcpkg.exe install libvpx:x64-windows
+        .\vcpkg.exe install opus:x64-windows
+        .\vcpkg.exe install fftw3:x64-windows
+        .\vcpkg.exe install easyhook:x64-windows
+        .\vcpkg.exe install glm:x64-windows
+        .\vcpkg.exe install sdl2:x64-windows
+        .\vcpkg.exe install jemalloc:x64-windows
+        .\vcpkg.exe install protobuf:x64-windows
+        .\vcpkg.exe install asio:x64-windows
+        .\vcpkg.exe install openssl:x64-windows
+        .\vcpkg.exe install ffmpeg:x64-windows
+        .\vcpkg.exe install opencv:x64-windows
+        .\vcpkg.exe install cpr:x64-windows
+        
+    - name: Set up Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.8.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        cache: true
+        
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. ^
+          -G "Visual Studio 17 2022" ^
+          -A x64 ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_TOOLCHAIN_FILE="%CD%\..\deps\tc_3rdparty\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
+          -DVCPKG_TARGET_TRIPLET=x64-windows ^
+          -DBUILD_PREMIUM=OFF ^
+          -DJEMALLOC_ENABLED=ON ^
+          -DMEMORY_STST_ENABLED=OFF ^
+          -DBUILD_FROM=CI
+          
+    - name: Build project
+      run: |
+        cd build
+        cmake --build . --config Release --parallel 4
+        
+    - name: Install project
+      run: |
+        cd build
+        cmake --install . --config Release --prefix ../install
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: gammaray-windows-release
+        path: install/
+        retention-days: 7
