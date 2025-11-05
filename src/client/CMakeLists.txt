@@ -115,11 +115,19 @@ if (APPLE)
     )
 endif()
 
-target_link_libraries(GammaRayClientInner PRIVATE Qt6::Widgets Qt6::Core Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Svg Qt6::Charts
-        tc_common_new tc_message tc_cp_message tc_sdk tc_qt_widget OpenSSL::SSL OpenSSL::Crypto #libssl64MT.lib libcrypto64MT.lib sqlite_orm::sqlite_orm
-        $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static> Winmm.lib #QWindowKit::Widgets TC_WidgetFrame
-        tc_rtc_client Dwmapi.lib tc_client_plugin sqlite35 libplacebo vulkan-1 tc_hw_info
-)
+if(WIN32)
+    target_link_libraries(GammaRayClientInner PRIVATE Qt6::Widgets Qt6::Core Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Svg Qt6::Charts
+            tc_common_new tc_message tc_cp_message tc_sdk tc_qt_widget OpenSSL::SSL OpenSSL::Crypto #libssl64MT.lib libcrypto64MT.lib sqlite_orm::sqlite_orm
+            $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static> Winmm.lib #QWindowKit::Widgets TC_WidgetFrame
+            tc_rtc_client Dwmapi.lib tc_client_plugin sqlite35 libplacebo vulkan-1 tc_hw_info
+    )
+else()
+    target_link_libraries(GammaRayClientInner PRIVATE Qt6::Widgets Qt6::Core Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Svg Qt6::Charts
+            tc_common_new tc_message tc_cp_message tc_sdk tc_qt_widget OpenSSL::SSL OpenSSL::Crypto
+            $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+            tc_rtc_client tc_client_plugin sqlite35 libplacebo vulkan-1 tc_hw_info
+    )
+endif()
 
 if(QT_VERSION_MAJOR EQUAL 6)
 #    qt_finalize_executable(${PROJECT_NAME})

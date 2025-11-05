@@ -54,6 +54,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev libx11-dev libgl1-mesa-dev libglu1-mesa-dev libxcb-xinerama0-dev
+          sudo apt-get install -y libasound2-dev libpulse-dev libxss1 libxcursor1 libxi6 libxtst6
+          sudo apt-get install -y libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
+          sudo apt-get install -y libopencv-dev libglm-dev libfftw3-dev
           # add other -dev packages as needed (e.g. libasound2-dev, libpulse-dev) depending on CMake errors
 
       - name: Setup Qt6 (Linux)
@@ -80,6 +83,20 @@ jobs:
           C:/source/vcpkg/bootstrap-vcpkg.bat
           # optional: integrate (not strictly required for CMake toolchain usage)
           C:/source/vcpkg/vcpkg.exe integrate install || true
+          echo "VCPKG_ROOT=C:/source/vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Install required packages
+          C:/source/vcpkg/vcpkg.exe install qt6-base qt6-tools qt6-charts qt6-svg qt6-websockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
+
+      - name: Install vcpkg (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Install vcpkg in user home directory
+          git clone --depth=1 https://github.com/microsoft/vcpkg.git $HOME/vcpkg
+          $HOME/vcpkg/bootstrap-vcpkg.sh
+          # Set environment variable for subsequent steps
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
+          # Install required packages
+          $HOME/vcpkg/vcpkg install qt6-base qt6-tools qt6-charts qt6-svg qt6-websockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-linux
 
       - name: Show info
         run: |
@@ -96,7 +113,9 @@ jobs:
           cmake -S . -B build -G Ninja \
             -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET="x64-linux"
 
       - name: Configure with CMake (Windows, using vcpkg + Ninja)
         if: runner.os == 'Windows'
@@ -107,7 +126,7 @@ jobs:
             -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" `
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
-            -DCMAKE_TOOLCHAIN_FILE="C:/source/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET="x64-windows"
 
       # Alternative for Windows if you prefer Visual Studio generator (uncomment to use)
@@ -120,7 +139,7 @@ jobs:
       #       -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" `
       #       -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
       #       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
-      #       -DCMAKE_TOOLCHAIN_FILE="C:/source/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+      #       -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
       #       -DVCPKG_TARGET_TRIPLET="x64-windows"
 
       - name: Build
