@@ -4,7 +4,14 @@ include(env_settings.cmake)
 include(version.cmake)
 
 set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
-set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+# Convert backslashes to forward slashes for CMAKE_TOOLCHAIN_FILE to avoid escape sequence issues
+if(WIN32)
+    # On Windows, replace backslashes with forward slashes
+    string(REPLACE "\\" "/" CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+else()
+    # On Unix-like systems, use the path as-is but ensure forward slashes
+    string(REPLACE "\\" "/" CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+endif()
 
 project(GammaRay VERSION ${TC_APP_VERSION} LANGUAGES CXX)
 
@@ -55,7 +62,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+# Convert backslashes to forward slashes to avoid escape sequence issues
+if(WIN32)
+    string(REPLACE "\\" "/" VCPKG_CMAKE_PATH "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+else()
+    string(REPLACE "\\" "/" VCPKG_CMAKE_PATH "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+endif()
+include(${VCPKG_CMAKE_PATH})
 
 set(FFMPEG_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/deps/tc_3rdparty/ffmpeg7.1.1)
 
@@ -99,10 +112,17 @@ include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/asio2/3rd)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/asio2/3rd/asio)
 #include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/protobuf/src)
 #include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/abseil-cpp)
-include_directories(${VCPKG_ROOT}/installed/x64-windows/include)
+# Convert backslashes to forward slashes to avoid escape sequence issues
+if(WIN32)
+    string(REPLACE "\\" "/" VCPKG_INCLUDE_PATH "${VCPKG_ROOT}/installed/x64-windows/include")
+else()
+    string(REPLACE "\\" "/" VCPKG_INCLUDE_PATH "${VCPKG_ROOT}/installed/x64-windows/include")
+endif()
+include_directories(${VCPKG_INCLUDE_PATH})
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/sqlite35)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/sqlite_orm/include)
 #include_directories(${VCPKG_ROOT}/installed/x64-windows-static/include)
+# Note: This line is commented out, but if enabled, it should also use file(TO_CMAKE_PATH ...) to avoid escape issues
 include_directories(${FFMPEG_ROOT}/include)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/webrtc/include/third_party/libyuv/include)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/leveldb/include)
@@ -112,7 +132,13 @@ include_directories(${GR_PROJECT_PATH}/src/render)
 include_directories(${GR_PROJECT_PATH}/deps/tc_qt_widget)
 include_directories(${GR_PROJECT_PATH}/deps/tc_client_sdk_new)
 
-link_directories(${VCPKG_ROOT}/installed/x64-windows/lib)
+# Convert backslashes to forward slashes to avoid escape sequence issues
+if(WIN32)
+    string(REPLACE "\\" "/" VCPKG_LIB_PATH "${VCPKG_ROOT}/installed/x64-windows/lib")
+else()
+    string(REPLACE "\\" "/" VCPKG_LIB_PATH "${VCPKG_ROOT}/installed/x64-windows/lib")
+endif()
+link_directories(${VCPKG_LIB_PATH})
 link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC/static)
 
 if(MSVC)

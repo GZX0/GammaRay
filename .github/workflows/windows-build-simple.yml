@@ -76,7 +76,8 @@ jobs:
       run: |
         mkdir build
         cd build
-        $vcpkgPath = "$PWD\..\deps\tc_3rdparty\vcpkg\scripts\buildsystems\vcpkg.cmake"
+        $vcpkgPath = Join-Path -Path $PWD -ChildPath "..\deps\tc_3rdparty\vcpkg\scripts\buildsystems\vcpkg.cmake" -Resolve
+        $vcpkgPath = $vcpkgPath -replace '\\', '/'
         cmake .. `
           -G "Visual Studio 17 2022" `
           -A x64 `
