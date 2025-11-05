@@ -42,7 +42,7 @@ The GammaRay project had CMake configuration issues that prevented building on b
 
 ### 5. GitHub Actions Workflow (`.github/workflows/build-release.yml`)
 - Added Linux vcpkg installation and configuration
-- Enhanced Linux system dependencies
+- Enhanced Linux system dependencies including autotools (autoconf, autoconf-archive, automake, libtool) required by vcpkg packages like gperf
 - Made both Windows and Linux use environment variables for paths
 - Added required vcpkg package installation for both platforms
 
