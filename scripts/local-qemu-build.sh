@@ -103,16 +103,7 @@ RUN "set(VCPKG_ROOT C:/vcpkg)" | Out-File -FilePath "env_settings.cmake" -Encodi
 # Build the project
 RUN mkdir build; \
     cd build; \
-    cmake .. ^ \
-      -G "Visual Studio 17 2022" ^ \
-      -A x64 ^ \
-      -DCMAKE_BUILD_TYPE=Release ^ \
-      -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" ^ \
-      -DVCPKG_TARGET_TRIPLET=x64-windows ^ \
-      -DBUILD_PREMIUM=OFF ^ \
-      -DJEMALLOC_ENABLED=ON ^ \
-      -DMEMORY_STST_ENABLED=OFF ^ \
-      -DBUILD_FROM="LOCAL_QEMU"; \
+    cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DBUILD_PREMIUM=OFF -DJEMALLOC_ENABLED=ON -DMEMORY_STST_ENABLED=OFF -DBUILD_FROM="LOCAL_QEMU"; \
     cmake --build . --config Release --parallel 4; \
     cmake --install . --config Release --prefix C:/build/GammaRay/install
 

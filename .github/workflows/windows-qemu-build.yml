@@ -122,11 +122,12 @@ jobs:
         cd build
         
         # Configure with CMake
+        $vcpkgToolchain = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
         cmake .. `
           -G "Visual Studio 17 2022" `
           -A x64 `
           -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain" `
           -DVCPKG_TARGET_TRIPLET=x64-windows `
           -DBUILD_PREMIUM=OFF `
           -DJEMALLOC_ENABLED=ON `
@@ -188,19 +189,20 @@ jobs:
       
     - name: Configure CMake (Windows)
       if: failure()
+      shell: pwsh
       run: |
         mkdir build
         cd build
-        cmake .. ^
-          -G "Visual Studio 17 2022" ^
-          -A x64 ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_TOOLCHAIN_FILE="%CD%\..\deps\tc_3rdparty\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
-          -DVCPKG_TARGET_TRIPLET=x64-windows ^
-          -DBUILD_PREMIUM=OFF ^
-          -DJEMALLOC_ENABLED=ON ^
+        $vcpkgPath = "$PWD\..\deps\tc_3rdparty\vcpkg\scripts\buildsystems\vcpkg.cmake"
+        cmake .. `
+          -G "Visual Studio 17 2022" `
+          -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_TOOLCHAIN_FILE="$vcpkgPath" `
+          -DVCPKG_TARGET_TRIPLET=x64-windows `
+          -DBUILD_PREMIUM=OFF `
+          -DJEMALLOC_ENABLED=ON `
           -DMEMORY_STST_ENABLED=OFF
-      shell: cmd
       
     - name: Build with MSBuild (Windows)
       if: failure()
