@@ -3,8 +3,25 @@ include(config.cmake)
 include(env_settings.cmake)
 include(version.cmake)
 
-set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
-set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+# Platform-specific configuration
+if(WIN32)
+    set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
+    set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+    set(VCPKG_TARGET_TRIPLET "x64-windows")
+else()
+    # Linux/Unix configuration
+    if(EXISTS "${QT_ROOT}/lib/cmake")
+        set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
+    else()
+        # Fallback to system Qt
+        set(CMAKE_PREFIX_PATH /usr/lib/x86_64-linux-gnu/cmake)
+    endif()
+    
+    if(EXISTS "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+        set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+        set(VCPKG_TARGET_TRIPLET "x64-linux")
+    endif()
+endif()
 
 project(GammaRay VERSION ${TC_APP_VERSION} LANGUAGES CXX)
 
@@ -55,7 +72,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+# Include vcpkg toolchain only if it exists
+if(EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+    include(${CMAKE_TOOLCHAIN_FILE})
+endif()
 
 set(FFMPEG_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/deps/tc_3rdparty/ffmpeg7.1.1)
 
@@ -99,7 +119,13 @@ include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/asio2/3rd)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/asio2/3rd/asio)
 #include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/protobuf/src)
 #include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/abseil-cpp)
-include_directories(${VCPKG_ROOT}/installed/x64-windows/include)
+if(WIN32)
+    include_directories(${VCPKG_ROOT}/installed/x64-windows/include)
+else()
+    if(EXISTS "${VCPKG_ROOT}/installed/x64-linux/include")
+        include_directories(${VCPKG_ROOT}/installed/x64-linux/include)
+    endif()
+endif()
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/sqlite35)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/sqlite_orm/include)
 #include_directories(${VCPKG_ROOT}/installed/x64-windows-static/include)
@@ -112,7 +138,13 @@ include_directories(${GR_PROJECT_PATH}/src/render)
 include_directories(${GR_PROJECT_PATH}/deps/tc_qt_widget)
 include_directories(${GR_PROJECT_PATH}/deps/tc_client_sdk_new)
 
-link_directories(${VCPKG_ROOT}/installed/x64-windows/lib)
+if(WIN32)
+    link_directories(${VCPKG_ROOT}/installed/x64-windows/lib)
+else()
+    if(EXISTS "${VCPKG_ROOT}/installed/x64-linux/lib")
+        link_directories(${VCPKG_ROOT}/installed/x64-linux/lib)
+    endif()
+endif()
 link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC/static)
 
 if(MSVC)
@@ -134,9 +166,12 @@ endif()
 
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 add_compile_definitions(ASIO2_ENABLE_SSL) #ASIO2_ENABLE_LOG
-add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DENABLE_SSL=0 -D_AMD64_)#-DCMAKE_GENERATOR_PLATFORM=x64
-add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
+if(WIN32)
+    add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DENABLE_SSL=0 -D_AMD64_)
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+endif()
 
 set(GFLAGS_USE_TARGET_NAMESPACE ON)
 find_package(gflags CONFIG REQUIRED)
@@ -150,9 +185,18 @@ if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInf
 endif()
 find_package(Protobuf REQUIRED)
 
-set(OpenCV_ROOT ${GR_PROJECT_PATH}/deps/tc_3rdparty/opencv_410)
-set(OpenCV_Libs ${OpenCV_ROOT}/x64/vc16/lib/opencv_world4100.lib)
-include_directories(${OpenCV_ROOT}/include)
+if(WIN32)
+    set(OpenCV_ROOT ${GR_PROJECT_PATH}/deps/tc_3rdparty/opencv_410)
+    set(OpenCV_Libs ${OpenCV_ROOT}/x64/vc16/lib/opencv_world4100.lib)
+    include_directories(${OpenCV_ROOT}/include)
+else()
+    # Try to find system OpenCV first, then fallback to bundled
+    find_package(OpenCV QUIET)
+    if(NOT OpenCV_FOUND)
+        set(OpenCV_ROOT ${GR_PROJECT_PATH}/deps/tc_3rdparty/opencv_410)
+        include_directories(${OpenCV_ROOT}/include)
+    endif()
+endif()
 
 add_subdirectory(deps)
 add_subdirectory(src)
@@ -175,15 +219,18 @@ add_executable(${PROJECT_NAME} WIN32
         ${DEVICE_LIST_SRCS}
 )
 
-#SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
-SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" /SUBSYSTEM:WINDOWS")
+if(WIN32)
+    SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" /SUBSYSTEM:WINDOWS")
+endif()
 
 #### GUARD BEG ####
-add_subdirectory(src/render_panel/guard)
-message("===> Guard SRCS: ${GUARD_SRCS}")
-add_executable(GammaRayGuard WIN32 ${GUARD_SRCS})
-target_link_libraries(GammaRayGuard PRIVATE Qt6::Widgets Qt6::Core Qt6::Core5Compat tc_common_new winmm.lib SetupAPI.lib comsuppw.lib gflags::gflags)
-SET_TARGET_PROPERTIES(GammaRayGuard PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\"")
+if(WIN32)
+    add_subdirectory(src/render_panel/guard)
+    message("===> Guard SRCS: ${GUARD_SRCS}")
+    add_executable(GammaRayGuard WIN32 ${GUARD_SRCS})
+    target_link_libraries(GammaRayGuard PRIVATE Qt6::Widgets Qt6::Core Qt6::Core5Compat tc_common_new winmm.lib SetupAPI.lib comsuppw.lib gflags::gflags)
+    SET_TARGET_PROPERTIES(GammaRayGuard PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\"")
+endif()
 #### GUARD END ####
 
 file(COPY ${GR_PROJECT_PATH}/src/render/settings.toml DESTINATION ${GR_PROJECT_BINARY_PATH}/)
@@ -191,11 +238,19 @@ file(COPY ${GR_PROJECT_PATH}/certs DESTINATION ${GR_PROJECT_BINARY_PATH}/)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/deps/tc_client_web/" DESTINATION ${GR_PROJECT_BINARY_PATH}/www)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/deps/tc_message_new/" DESTINATION ${GR_PROJECT_BINARY_PATH}/www)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Network Qt6::Core Qt6::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg sqlite35
-        tc_common_new tc_steam_manager_new tc_vigem tc_message tc_cp_message tc_plugin tc_qt_widget winmm.lib SetupAPI.lib gflags::gflags#tc_signaling_sdk #lib_GammaRayClient
-        tc_relay_client tc_translator tc_spvr_client Dwmapi.lib tc_widget_loadings tc_client_plugin #QWindowKit::Widgets TC_WidgetFrame
-        tc_account_sdk tc_rp_message tc_profile_client tc_hw_info tc_global_id_generator tc_server_message
-)
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Network Qt6::Core Qt6::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg sqlite35
+            tc_common_new tc_steam_manager_new tc_vigem tc_message tc_cp_message tc_plugin tc_qt_widget winmm.lib SetupAPI.lib gflags::gflags#tc_signaling_sdk #lib_GammaRayClient
+            tc_relay_client tc_translator tc_spvr_client Dwmapi.lib tc_widget_loadings tc_client_plugin #QWindowKit::Widgets TC_WidgetFrame
+            tc_account_sdk tc_rp_message tc_profile_client tc_hw_info tc_global_id_generator tc_server_message
+    )
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Network Qt6::Core Qt6::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg sqlite35
+            tc_common_new tc_steam_manager_new tc_vigem tc_message tc_cp_message tc_plugin tc_qt_widget gflags::gflags#tc_signaling_sdk #lib_GammaRayClient
+            tc_relay_client tc_translator tc_spvr_client tc_widget_loadings tc_client_plugin #QWindowKit::Widgets TC_WidgetFrame
+            tc_account_sdk tc_rp_message tc_profile_client tc_hw_info tc_global_id_generator tc_server_message
+    )
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${GR_PROJECT_BINARY_PATH}/gr_plugins
@@ -203,37 +258,62 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 )
 
 ### Service Beg
-### Service
-add_executable(GammaRayService ${SERVICE_SRCS})
-SET_TARGET_PROPERTIES(GammaRayService PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
-target_link_libraries(GammaRayService PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
-        Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
-target_link_libraries(GammaRayService PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35 winmm.lib SetupAPI.lib)
+if(WIN32)
+    ### Service
+    add_executable(GammaRayService ${SERVICE_SRCS})
+    SET_TARGET_PROPERTIES(GammaRayService PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
+    target_link_libraries(GammaRayService PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(GammaRayService PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35 winmm.lib SetupAPI.lib)
 
-### Service Manager
-add_executable(GammaRayServiceManager ${SERVICE_MGR_MAIN_SRCS} ${SERVICE_MGR_SRCS})
-SET_TARGET_PROPERTIES(GammaRayServiceManager PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
+    ### Service Manager
+    add_executable(GammaRayServiceManager ${SERVICE_MGR_MAIN_SRCS} ${SERVICE_MGR_SRCS})
+    SET_TARGET_PROPERTIES(GammaRayServiceManager PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
 
-target_link_libraries(GammaRayServiceManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
-        Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
-target_link_libraries(GammaRayServiceManager PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35 winmm.lib SetupAPI.lib)
+    target_link_libraries(GammaRayServiceManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(GammaRayServiceManager PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35 winmm.lib SetupAPI.lib)
+else()
+    ### Service (Linux)
+    add_executable(GammaRayService ${SERVICE_SRCS})
+    target_link_libraries(GammaRayService PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(GammaRayService PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35)
+
+    ### Service Manager (Linux)
+    add_executable(GammaRayServiceManager ${SERVICE_MGR_MAIN_SRCS} ${SERVICE_MGR_SRCS})
+    target_link_libraries(GammaRayServiceManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(GammaRayServiceManager PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message tc_plugin tc_qt_widget sqlite35)
+endif()
 ### Service End
 
 ### Uninstall
-add_executable(uninstall WIN32
-        icon.rc
-        ${UNINSTALL_SRCS}
-        ${SERVICE_MGR_SRCS})
+if(WIN32)
+    add_executable(uninstall WIN32
+            icon.rc
+            ${UNINSTALL_SRCS}
+            ${SERVICE_MGR_SRCS})
 
-target_link_libraries(uninstall PRIVATE gflags)
+    target_link_libraries(uninstall PRIVATE gflags)
 
-SET_TARGET_PROPERTIES(uninstall PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
-add_executable(shadow_deleter ${SHADOW_DELETER_SRCS})
-SET_TARGET_PROPERTIES(shadow_deleter PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
+    SET_TARGET_PROPERTIES(uninstall PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
+    add_executable(shadow_deleter ${SHADOW_DELETER_SRCS})
+    SET_TARGET_PROPERTIES(shadow_deleter PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"")
 
-target_link_libraries(uninstall PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network tc_qt_widget
-        Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
-target_link_libraries(uninstall PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message sqlite35 tc_plugin winmm.lib SetupAPI.lib)
+    target_link_libraries(uninstall PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network tc_qt_widget
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(uninstall PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message sqlite35 tc_plugin winmm.lib SetupAPI.lib)
+else()
+    add_executable(uninstall
+            ${UNINSTALL_SRCS}
+            ${SERVICE_MGR_SRCS})
+
+    target_link_libraries(uninstall PRIVATE gflags)
+    target_link_libraries(uninstall PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network tc_qt_widget
+            Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Core5Compat Qt6::WebSockets Qt6::Network Qt6::Charts Qt6::Svg)
+    target_link_libraries(uninstall PRIVATE tc_common_new tc_steam_manager_new tc_vigem tc_message sqlite35 tc_plugin)
+endif()
 ### Uninstall End
 
 include(GNUInstallDirs)
@@ -274,8 +354,10 @@ add_custom_command(TARGET tc_build_all POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${GR_PROJECT_PATH}/resources/qt_material"  "${GR_PROJECT_BINARY_PATH}/resources/qt_material"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${GR_PROJECT_PATH}/resources/language"  "${GR_PROJECT_BINARY_PATH}/resources/language"
     COMMAND ${CMAKE_COMMAND} -E copy "${GR_PROJECT_PATH}/src/render/settings.toml"  "${GR_PROJECT_BINARY_PATH}/"
-    COMMAND ${CMAKE_COMMAND} -E copy "${OpenCV_ROOT}/x64/vc16/bin/opencv_world4100.dll"  "${GR_PROJECT_BINARY_PATH}/"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GR_PROJECT_PATH}/prebuild/win/gr_sysinfo.exe"  "${GR_PROJECT_BINARY_PATH}/"
+    if(WIN32)
+        COMMAND ${CMAKE_COMMAND} -E copy "${OpenCV_ROOT}/x64/vc16/bin/opencv_world4100.dll"  "${GR_PROJECT_BINARY_PATH}/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GR_PROJECT_PATH}/prebuild/win/gr_sysinfo.exe"  "${GR_PROJECT_BINARY_PATH}/"
+    endif()
 
     COMMAND ${CMAKE_COMMAND} -E copy "${GR_PROJECT_BINARY_PATH}/tc_rtc_client.dll"  "${GR_PROJECT_BINARY_PATH}/gr_client/tc_rtc_client.dll"
 
@@ -314,7 +396,9 @@ add_custom_command(TARGET tc_build_all POST_BUILD
 
 )
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${QT_ROOT}/bin/windeployqt.exe $<TARGET_FILE:${PROJECT_NAME}> --release
-        COMMAND ${CMAKE_COMMAND} -E copy "${GR_PROJECT_PATH}/deps/tc_controller/vigem/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe"  "${GR_PROJECT_BINARY_PATH}/"
-)
+if(WIN32)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${QT_ROOT}/bin/windeployqt.exe $<TARGET_FILE:${PROJECT_NAME}> --release
+            COMMAND ${CMAKE_COMMAND} -E copy "${GR_PROJECT_PATH}/deps/tc_controller/vigem/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe"  "${GR_PROJECT_BINARY_PATH}/"
+    )
+endif()
