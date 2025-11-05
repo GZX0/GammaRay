@@ -47,14 +47,14 @@ jobs:
 
       - name: Setup Qt6 (Linux)
         if: runner.os == 'Linux'
-        uses: qt-actions/setup-qt@v2
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.6.2'
           host: 'linux'
           target: 'desktop'
       - name: Setup Qt6 (Windows)
         if: runner.os == 'Windows'
-        uses: qt-actions/setup-qt@v2
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.6.2'
           host: 'windows'
