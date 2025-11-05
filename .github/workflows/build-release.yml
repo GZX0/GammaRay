@@ -60,20 +60,57 @@ jobs:
           host: 'windows'
           target: 'desktop'
 
+      - name: Install vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # clone vcpkg into the path expected by your CMakeLists (matches the error path)
+          git clone --depth=1 https://github.com/microsoft/vcpkg.git C:/source/vcpkg
+          C:/source/vcpkg/bootstrap-vcpkg.bat
+          # optional: integrate (not strictly required for CMake toolchain usage)
+          C:/source/vcpkg/vcpkg.exe integrate install || true
+
       - name: Show info
         run: |
           echo "OS: $RUNNER_OS"
           cmake --version || true
           ninja --version || true
           python3 --version || python --version || true
+          if [ "${{ runner.os }}" = "Windows" ]; then where ninja || where cmake || true; fi
 
-      - name: Configure with CMake
+      - name: Configure with CMake (Linux)
+        if: runner.os == 'Linux'
         run: |
           mkdir -p build
           cmake -S . -B build -G Ninja \
             -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Configure with CMake (Windows, using vcpkg + Ninja)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          mkdir build -ErrorAction SilentlyContinue
+          cmake -S . -B build -G Ninja `
+            -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" `
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+            -DCMAKE_TOOLCHAIN_FILE="C:/source/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET="x64-windows"
+
+      # Alternative for Windows if you prefer Visual Studio generator (uncomment to use)
+      # - name: Configure with CMake (Windows, Visual Studio generator)
+      #   if: runner.os == 'Windows'
+      #   shell: powershell
+      #   run: |
+      #     mkdir build -ErrorAction SilentlyContinue
+      #     cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+      #       -DGR_PROJECT_PATH="${{ env.GR_PROJECT_PATH }}" `
+      #       -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+      #       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+      #       -DCMAKE_TOOLCHAIN_FILE="C:/source/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+      #       -DVCPKG_TARGET_TRIPLET="x64-windows"
 
       - name: Build
         run: |
