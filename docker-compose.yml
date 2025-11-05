@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  windows-builder:
+    platform: windows/amd64
+    image: mcr.microsoft.com/windows/servercore:ltsc2022
+    working_dir: C:/build
+    volumes:
+      - ./:C:/build/GammaRay:ro
+      - ./build-output:C:/build/output
+    environment:
+      - VCPKG_ROOT=C:/vcpkg
+      - QT_ROOT=C:/Qt/6.8.3/msvc2022_64
+      - CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+    command: ["powershell", "-Command", "Write-Host 'Windows builder container ready'"]
+    
+  vcpkg-installer:
+    platform: windows/amd64
+    build:
+      context: .
+      dockerfile: docker/vcpkg.Dockerfile
+    volumes:
+      - vcpkg-cache:C:/vcpkg/installed
+    environment:
+      - VCPKG_DEFAULT_TRIPLET=x64-windows
+    command: ["echo", "Vcpkg dependencies installed"]
+
+volumes:
+  vcpkg-cache:
+    driver: local
