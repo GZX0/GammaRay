@@ -57,8 +57,8 @@ jobs:
           sudo apt-get install -y libasound2-dev libpulse-dev libxss1 libxcursor1 libxi6 libxtst6
           sudo apt-get install -y libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
           sudo apt-get install -y libopencv-dev libglm-dev libfftw3-dev
-          # Install autotools dependencies required by vcpkg packages (e.g., gperf)
-          sudo apt-get install -y autoconf autoconf-archive automake libtool
+          # Install autotools dependencies required by vcpkg packages (e.g., gperf, libxcrypt)
+          sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
           # add other -dev packages as needed (e.g. libasound2-dev, libpulse-dev) depending on CMake errors
 
       - name: Setup Qt6 (Linux)
