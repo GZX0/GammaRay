@@ -83,18 +83,80 @@ set(LIBPLACEBO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/deps/tc_3rdparty/libplacebo)
 
 #find_package(OpenSSL REQUIRED)
 #find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Network Charts Svg)
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Charts Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Charts Svg)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network Core WebSockets Charts Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core WebSockets Charts Svg)
+
+# Try to find Qt6Core5Compat (Qt5Compat module) - make it optional for Linux
+find_package(Qt6Core5Compat QUIET)
+if(NOT Qt6Core5Compat_FOUND)
+    message(STATUS "Qt6Core5Compat not found, some Qt5 compatibility features may be unavailable")
+    # Create a dummy target if Qt6Core5Compat is not found
+    add_library(Qt6::Core5Compat INTERFACE IMPORTED)
+endif()
+
+# Try to find Vulkan - make it optional
+find_package(Vulkan QUIET)
+if(NOT Vulkan_FOUND)
+    message(STATUS "Vulkan not found, Vulkan-based features will be unavailable")
+endif()
 
 find_package(SDL2 CONFIG REQUIRED)
 set(GFLAGS_USE_TARGET_NAMESPACE ON)
 find_package(gflags CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(unofficial-libvpx CONFIG REQUIRED)
-find_package(FFTW3 CONFIG REQUIRED)
+
+# Try vcpkg packages first, then fallback to system packages
+find_package(unofficial-libvpx CONFIG QUIET)
+if(NOT unofficial-libvpx_FOUND)
+    message(STATUS "unofficial-libvpx not found, trying system libvpx")
+    find_library(LIBVPX_LIBRARY vpx)
+    find_path(LIBVPX_INCLUDE_DIR vpx/vpx_decoder.h)
+    if(LIBVPX_LIBRARY AND LIBVPX_INCLUDE_DIR)
+        message(STATUS "Found system libvpx: ${LIBVPX_LIBRARY}")
+        add_library(unofficial::libvpx::libvpx STATIC IMPORTED)
+        set_target_properties(unofficial::libvpx::libvpx PROPERTIES
+            IMPORTED_LOCATION "${LIBVPX_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBVPX_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "libvpx not found")
+    endif()
+endif()
+
+find_package(FFTW3 CONFIG QUIET)
+if(NOT FFTW3_FOUND)
+    message(STATUS "FFTW3 CONFIG not found, trying system fftw3")
+    find_library(FFTW3_LIBRARY fftw3)
+    find_path(FFTW3_INCLUDE_DIR fftw3.h)
+    if(FFTW3_LIBRARY AND FFTW3_INCLUDE_DIR)
+        message(STATUS "Found system fftw3: ${FFTW3_LIBRARY}")
+        add_library(FFTW3::FFTW3 STATIC IMPORTED)
+        set_target_properties(FFTW3::FFTW3 PROPERTIES
+            IMPORTED_LOCATION "${FFTW3_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "fftw3 not found")
+    endif()
+endif()
 find_package(OpenSSL REQUIRED)
-find_package(cpr CONFIG REQUIRED)
+
+find_package(cpr CONFIG QUIET)
+if(NOT cpr_FOUND)
+    message(STATUS "cpr CONFIG not found, trying system cpr")
+    find_library(CPR_LIBRARY cpr)
+    find_path(CPR_INCLUDE_DIR cpr/cpr.h)
+    if(CPR_LIBRARY AND CPR_INCLUDE_DIR)
+        message(STATUS "Found system cpr: ${CPR_LIBRARY}")
+        add_library(cpr::cpr STATIC IMPORTED)
+        set_target_properties(cpr::cpr PROPERTIES
+            IMPORTED_LOCATION "${CPR_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${CPR_INCLUDE_DIR}")
+    else()
+        message(STATUS "cpr not found, creating dummy target")
+        # Create a dummy target since cpr doesn't seem to be used
+        add_library(cpr::cpr INTERFACE IMPORTED)
+    endif()
+endif()
 
 qt_standard_project_setup(REQUIRES 6.5)
 
