@@ -93,8 +93,8 @@ jobs:
           # optional: integrate (not strictly required for CMake toolchain usage)
           try { C:/source/vcpkg/vcpkg.exe integrate install } catch { }
           echo "VCPKG_ROOT=C:/source/vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          # Install required packages
-           C:/source/vcpkg/vcpkg.exe install qtbase qttools qtcharts qtsvg qtwebsockets qt5compat qtwayland gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
+          # Install required packages (qtwayland is not supported on Windows)
+           C:/source/vcpkg/vcpkg.exe install qtbase qttools qtcharts qtsvg qtwebsockets qt5compat gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
 
       - name: Install vcpkg (Linux)
         if: runner.os == 'Linux'
