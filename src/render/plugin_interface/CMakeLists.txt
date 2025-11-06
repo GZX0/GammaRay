@@ -7,8 +7,15 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Network Charts Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Network Charts Svg)
+# WebSockets is Windows-specific for this project
+if(WIN32)
+    find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Network Charts Svg)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core Core5Compat WebSockets Network Charts Svg)
+else()
+    find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network Core Network Charts Svg)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core Network Charts Svg)
+    # WebSockets and Core5Compat are already handled in main CMakeLists.txt with dummy targets if not found
+endif()
 
 set(PLUGIN_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/gr_plugin_interface.cpp
