@@ -6,7 +6,13 @@ set(CMAKE_AUTORCC ON)
 
 message("Client => CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core OpenGL OpenGLWidgets Svg Charts)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core OpenGL OpenGLWidgets Svg)
+# Try to find Charts optionally for Linux
+find_package(Qt6Charts QUIET)
+if(NOT Qt6Charts_FOUND)
+    message(STATUS "Qt6Charts not found on Linux, creating dummy target")
+    add_library(Qt6_Charts_MainClient INTERFACE IMPORTED)
+endif()
 find_package(OpenSSL REQUIRED)
 
 include_directories(${VK_SDK_ROOT}/Include)
@@ -122,11 +128,11 @@ if(WIN32)
             tc_rtc_client Dwmapi.lib tc_client_plugin sqlite35 libplacebo vulkan-1 tc_hw_info
     )
 else()
-    target_link_libraries(GammaRayClientInner PRIVATE Qt6::Widgets Qt6::Core Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Svg Qt6::Charts
+    target_link_libraries(GammaRayClientInner PRIVATE Qt6::Widgets Qt6::Core Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Svg Qt6_Charts_MainClient
             tc_common_new tc_message tc_cp_message tc_sdk tc_qt_widget OpenSSL::SSL OpenSSL::Crypto
             $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
             tc_rtc_client tc_client_plugin sqlite35 libplacebo vulkan-1 tc_hw_info
-    )
+     )
 endif()
 
 if(QT_VERSION_MAJOR EQUAL 6)

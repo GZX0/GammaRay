@@ -89,8 +89,7 @@ if(WIN32)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core WebSockets Charts Svg)
 else()
     # On Linux, make WebSockets and Charts optional since this is a Windows-focused project
-    find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network Core Svg)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Core Svg)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Network Core Svg)
     # Try to find WebSockets optionally for Linux
     find_package(Qt${QT_VERSION_MAJOR}WebSockets QUIET)
     if(NOT Qt${QT_VERSION_MAJOR}WebSockets_FOUND)
