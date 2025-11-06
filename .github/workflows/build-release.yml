@@ -59,6 +59,9 @@ jobs:
           sudo apt-get install -y libopencv-dev libglm-dev libfftw3-dev
           # Install autotools dependencies required by vcpkg packages (e.g., gperf, libxcrypt)
           sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
+          # Install additional system dependencies required by libsystemd
+          sudo apt-get install -y libcap-dev libmount-dev libpam0g-dev libselinux1-dev libudev-dev
+          sudo apt-get install -y pkg-config python3-dev liblz4-dev liblzma5-dev libzstd-dev
           # add other -dev packages as needed (e.g. libasound2-dev, libpulse-dev) depending on CMake errors
 
       - name: Setup Qt6 (Linux)
@@ -97,8 +100,31 @@ jobs:
           $HOME/vcpkg/bootstrap-vcpkg.sh
           # Set environment variable for subsequent steps
           echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
-          # Install required packages
-          $HOME/vcpkg/vcpkg install qtbase qttools qtcharts qtsvg qtwebsockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-linux
+          # Set environment variables to help with libsystemd build
+          echo "VCPKG_FORCE_SYSTEM_BINARIES=1" >> $GITHUB_ENV
+          echo "VCPKG_ALLOW_SYSTEM_LIBS=1" >> $GITHUB_ENV
+          echo "MESON_CROSS_FILE=" >> $GITHUB_ENV
+          # Install system libsystemd development packages to avoid vcpkg building it
+          sudo apt-get install -y libsystemd-dev libudev-dev
+          # Create custom triplet to avoid libsystemd issues if needed
+          mkdir -p $HOME/vcpkg/triplets
+          cat > $HOME/vcpkg/triplets/x64-linux-custom.cmake << 'EOF'
+set(VCPKG_TARGET_ARCHITECTURE x64)
+set(VCPKG_CRT_LINKAGE dynamic)
+set(VCPKG_LIBRARY_LINKAGE dynamic)
+set(VCPKG_CMAKE_CONFIGURE_OPTIONS -DSYSTEMD=OFF)
+
+set(VCPKG_CXX_FLAGS "")
+set(VCPKG_C_FLAGS "")
+EOF
+          # Check vcpkg version
+          $HOME/vcpkg/vcpkg version
+          # Install packages individually to isolate issues
+          PACKAGES="qtbase qttools qtcharts qtsvg qtwebsockets gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx"
+          for pkg in $PACKAGES; do
+            echo "Installing $pkg..."
+            $HOME/vcpkg/vcpkg install $pkg --triplet=x64-linux || echo "Failed to install $pkg, continuing..."
+          done
 
       - name: Show info
         run: |

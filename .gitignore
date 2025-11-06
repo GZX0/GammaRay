@@ -10,3 +10,8 @@ src/client/.vscode/*
 src/render/.vscode/*
 /temp
 build/
+# vcpkg build directories
+vcpkg_installed/
+vcpkg/buildtrees/
+vcpkg/packages/
+vcpkg/downloads/
