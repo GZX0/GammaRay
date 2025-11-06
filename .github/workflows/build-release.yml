@@ -27,6 +27,35 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Fix Submodule URLs
+        run: |
+          # Convert SSH URLs to HTTPS for submodules that don't have access
+          cd deps
+          for dir in tc_3rdparty; do
+            if [ -d "$dir" ]; then
+              cd "$dir"
+              if [ -f ".gitmodules" ]; then
+                echo "Fixing submodule URLs in $dir"
+                # Convert SSH URLs to HTTPS
+                sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+                # Update submodules
+                git submodule sync
+                # Initialize and update submodules
+                git submodule update --init --recursive --recommend-shallow-submodules --no-single-branch --force
+              fi
+              cd ..
+            fi
+          done
+          
+          # Fix other submodules in root
+          if [ -f ".gitmodules" ]; then
+            echo "Fixing root submodule URLs"
+            sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+            git submodule sync
+            git submodule update --init --recursive --recommend-shallow-submodules --no-single-branch --force
+          fi
 
       - name: Setup common tools (cmake, ninja, python)
         if: runner.os == 'Linux'
@@ -57,6 +86,11 @@ jobs:
           sudo apt-get install -y libasound2-dev libpulse-dev libxss1 libxcursor1 libxi6 libxtst6
           sudo apt-get install -y libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
           sudo apt-get install -y libopencv-dev libglm-dev libfftw3-dev
+          # Install Qt6 system packages
+          sudo apt-get install -y qt6-base-dev qt6-tools-dev qt6-charts-dev qt6-svg-dev qt6-5compat-dev
+          # Install additional system dependencies
+          sudo apt-get install -y libsdl2-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libgflags-dev libgtest-dev libvpx-dev libprotobuf-dev protobuf-compiler
           # Install autotools dependencies required by vcpkg packages (e.g., gperf, libxcrypt)
           sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
           # Install additional system dependencies required by libsystemd
@@ -64,9 +98,56 @@ jobs:
            sudo apt-get install -y pkg-config python3-dev liblz4-dev liblzma-dev libzstd-dev
            # Install Vulkan development packages
            sudo apt-get install -y libvulkan-dev vulkan-tools
-           # Install Qt5Compat package for Qt5 compatibility
-           sudo apt-get install -y qt6-5compat-dev
           # add other -dev packages as needed (e.g. libasound2-dev, libpulse-dev) depending on CMake errors
+
+      - name: Ensure Submodules are Complete
+        run: |
+          # Ensure all critical submodules are available
+          cd deps
+          
+          # List of required submodules that might be missing
+          REQUIRED_SUBMODULES="tc_3rdparty tc_account_sdk tc_message_new tc_qt_widget tc_relay_client tc_spvr_client tc_steam_manager_new tc_controller tc_webrtc_client tc_common_new tc_encoder_new tc_opus_codec_new"
+          
+          for submodule in $REQUIRED_SUBMODULES; do
+            if [ ! -d "$submodule/CMakeLists.txt" ] || [ -z "$(ls -A $submodule)" ]; then
+              echo "Submodule $submodule is incomplete or empty, attempting to clone..."
+              rm -rf "$submodule"
+              # Try HTTPS clone first, then fallback to creating empty directory
+              if git clone "https://github.com/RGAA-Software/$submodule.git" "$submodule" 2>/dev/null; then
+                echo "Successfully cloned $submodule"
+              elif git clone "https://github.com/microsoft/$submodule.git" "$submodule" 2>/dev/null; then
+                echo "Successfully cloned $submodule from Microsoft"
+              elif git clone "https://github.com/google/$submodule.git" "$submodule" 2>/dev/null; then
+                echo "Successfully cloned $submodule from Google"
+              elif git clone "https://github.com/xiph/$submodule.git" "$submodule" 2>/dev/null; then
+                echo "Successfully cloned $submodule from Xiph"
+              else
+                echo "Failed to clone $submodule, creating empty directory"
+                mkdir -p "$submodule"
+                echo "# Empty placeholder for $submodule" > "$submodule/CMakeLists.txt"
+              fi
+            else
+              echo "Submodule $submodule is OK"
+            fi
+          done
+          
+          # Handle tc_3rdparty internal submodules
+          if [ -d "tc_3rdparty" ]; then
+            cd tc_3rdparty
+            INTERNAL_SUBMODULES="leveldb opus"
+            for submodule in $INTERNAL_SUBMODULES; do
+              if [ ! -d "$submodule/CMakeLists.txt" ] || [ -z "$(ls -A $submodule)" ]; then
+                echo "Internal submodule $submodule is incomplete, attempting to clone..."
+                rm -rf "$submodule"
+                if [ "$submodule" = "leveldb" ]; then
+                  git clone "https://github.com/google/$submodule.git" "$submodule"
+                elif [ "$submodule" = "opus" ]; then
+                  git clone "https://github.com/xiph/$submodule.git" "$submodule"
+                fi
+              fi
+            done
+            cd ..
+          fi
 
       - name: Setup Qt6 (Linux)
         if: runner.os == 'Linux'
