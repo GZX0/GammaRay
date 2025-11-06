@@ -109,14 +109,14 @@ jobs:
           # Create custom triplet to avoid libsystemd issues if needed
           mkdir -p $HOME/vcpkg/triplets
           cat > $HOME/vcpkg/triplets/x64-linux-custom.cmake << 'EOF'
-set(VCPKG_TARGET_ARCHITECTURE x64)
-set(VCPKG_CRT_LINKAGE dynamic)
-set(VCPKG_LIBRARY_LINKAGE dynamic)
-set(VCPKG_CMAKE_CONFIGURE_OPTIONS -DSYSTEMD=OFF)
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_CRT_LINKAGE dynamic)
+          set(VCPKG_LIBRARY_LINKAGE dynamic)
+          set(VCPKG_CMAKE_CONFIGURE_OPTIONS -DSYSTEMD=OFF)
 
-set(VCPKG_CXX_FLAGS "")
-set(VCPKG_C_FLAGS "")
-EOF
+          set(VCPKG_CXX_FLAGS "")
+          set(VCPKG_C_FLAGS "")
+          EOF
           # Check vcpkg version
           $HOME/vcpkg/vcpkg version
           # Install packages individually to isolate issues
