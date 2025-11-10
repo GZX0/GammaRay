@@ -132,6 +132,7 @@ jobs:
           # add other -dev packages as needed (e.g. libasound2-dev, libpulse-dev) depending on CMake errors
 
       - name: Ensure Submodules are Complete
+        shell: bash
         run: |
           # Ensure all critical submodules are available
           cd deps
@@ -243,6 +244,7 @@ jobs:
            done
 
       - name: Show info
+        shell: bash
         run: |
           echo "OS: $RUNNER_OS"
           cmake --version || true
@@ -287,10 +289,12 @@ jobs:
       #       -DVCPKG_TARGET_TRIPLET="x64-windows"
 
       - name: Build
+        shell: bash
         run: |
           cmake --build build --config ${{ matrix.build_type }} --parallel
 
       - name: Package artifacts
+        shell: bash
         run: |
           mkdir -p artifacts
           if [ "${{ runner.os }}" = "Linux" ]; then
@@ -333,6 +337,7 @@ jobs:
           path: downloaded_artifacts
 
       - name: List downloaded files
+        shell: bash
         run: |
           echo "Downloaded artifacts:"
           ls -R downloaded_artifacts || true
