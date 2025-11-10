@@ -107,7 +107,32 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+      
+      - name: Verify Python installation
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Verify Python is properly set up and accessible
+          python --version
+          python -m pip --version
+          # Set explicit Python path to avoid WindowsApps issues
+          $pythonPath = (Get-Command python).Source
+          echo "Python path: $pythonPath"
+          echo "PYTHON_PATH=$pythonPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Remove WindowsApps Python alias to avoid EACCES errors
+          if ($pythonPath -like "*WindowsApps*") {
+            echo "WindowsApps Python detected, using hostedtoolcache Python instead"
+            $hostedPython = "C:\hostedtoolcache\windows\Python\3.12.10\x64\python.exe"
+            if (Test-Path $hostedPython) {
+              echo "PYTHON_PATH=$hostedPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              echo "Using hostedtoolcache Python: $hostedPython"
+            }
+          }
+          # Install aqtinstall with explicit Python path
+          $pythonExe = $env:PYTHON_PATH
+          & $pythonExe -m pip install --upgrade pip
+          & $pythonExe -m pip install aqtinstall
 
       - name: Install system deps (Linux)
         if: runner.os == 'Linux'
@@ -181,24 +206,107 @@ jobs:
             cd ..
           fi
 
+      - name: Configure Qt installation environment
+        shell: bash
+        run: |
+          # Set environment variables to handle network timeouts
+          echo "AQT_CONFIG=mirrors=mirrors.ocf.berkeley.edu,ftp.fau.de,download.qt.io" >> $GITHUB_ENV
+          echo "AQT_TIMEOUT=300" >> $GITHUB_ENV
+          echo "AQT_RETRIES=3" >> $GITHUB_ENV
+          # Increase timeout for network operations
+          echo "VCPKG_MAX_CONCURRENCY=4" >> $GITHUB_ENV
+          # Handle Windows-specific Python issues
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "PYTHONIOENCODING=utf-8" >> $GITHUB_ENV
+            echo "PYTHONUTF8=1" >> $GITHUB_ENV
+            # Disable WindowsApps store to avoid permission issues
+            echo "PYTHONDONTWRITEBYTECODE=1" >> $GITHUB_ENV
+          fi
+
       - name: Setup Qt6 (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 20
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.6.2'
           host: 'linux'
           target: 'desktop'
+          cache: true
+          install-deps: false
+          mirror: 'https://mirrors.ocf.berkeley.edu/qt/'
+          extra: '--external 7z'
+        continue-on-error: true
+      
+      - name: Setup Qt6 (Linux - Fallback)
+        if: runner.os == 'Linux' && failure()
+        timeout-minutes: 20
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.2'
+          host: 'linux'
+          target: 'desktop'
+          cache: true
+          install-deps: false
+          mirror: 'https://ftp.fau.de/qtproject/'
+          extra: '--external 7z'
+        continue-on-error: true
+      
+      - name: Setup Qt6 (Linux - Final Fallback)
+        if: runner.os == 'Linux' && failure()
+        timeout-minutes: 20
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.2'
+          host: 'linux'
+          target: 'desktop'
+          cache: true
+          install-deps: false
+          extra: '--external 7z'
+      
       - name: Setup Qt6 (Windows)
         if: runner.os == 'Windows'
+        timeout-minutes: 20
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.6.2'
           host: 'windows'
           target: 'desktop'
+          cache: true
+          install-deps: false
+          mirror: 'https://mirrors.ocf.berkeley.edu/qt/'
+          extra: '--external 7z'
+        continue-on-error: true
+      
+      - name: Setup Qt6 (Windows - Fallback)
+        if: runner.os == 'Windows' && failure()
+        timeout-minutes: 20
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.2'
+          host: 'windows'
+          target: 'desktop'
+          cache: true
+          install-deps: false
+          mirror: 'https://ftp.fau.de/qtproject/'
+          extra: '--external 7z'
+        continue-on-error: true
+      
+      - name: Setup Qt6 (Windows - Final Fallback)
+        if: runner.os == 'Windows' && failure()
+        timeout-minutes: 20
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.2'
+          host: 'windows'
+          target: 'desktop'
+          cache: true
+          install-deps: false
+          extra: '--external 7z'
 
       - name: Install vcpkg (Windows)
         if: runner.os == 'Windows'
         shell: powershell
+        timeout-minutes: 30
         run: |
           # clone vcpkg into the path expected by your CMakeLists (matches the error path)
           git clone --depth=1 https://github.com/microsoft/vcpkg.git C:/source/vcpkg
@@ -206,11 +314,32 @@ jobs:
           # optional: integrate (not strictly required for CMake toolchain usage)
           try { C:/source/vcpkg/vcpkg.exe integrate install } catch { }
           echo "VCPKG_ROOT=C:/source/vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Set vcpkg environment variables for better network handling
+          echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           # Install required packages (qtwayland is not supported on Windows)
-           C:/source/vcpkg/vcpkg.exe install qtbase qttools qtcharts qtsvg qtwebsockets qt5compat gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx --triplet=x64-windows
+          # Install packages with retry logic
+          $packages = @("qtbase", "qttools", "qtcharts", "qtsvg", "qtwebsockets", "qt5compat", "gflags", "sdl2", "fftw3", "openssl", "cpr", "opencv", "protobuf", "glm", "libvpx")
+          foreach ($pkg in $packages) {
+            Write-Host "Installing $pkg..."
+            $retryCount = 0
+            $maxRetries = 3
+            while ($retryCount -lt $maxRetries) {
+              try {
+                C:/source/vcpkg/vcpkg.exe install $pkg --triplet=x64-windows --retry=3
+                break
+              } catch {
+                $retryCount++
+                Write-Host "Failed to install $pkg (attempt $retryCount/$maxRetries), retrying..."
+                if ($retryCount -eq $maxRetries) {
+                  Write-Host "Failed to install $pkg after $maxRetries attempts, continuing..."
+                }
+              }
+            }
+          }
 
       - name: Install vcpkg (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 30
         run: |
           # Install vcpkg in user home directory
           git clone --depth=1 https://github.com/microsoft/vcpkg.git $HOME/vcpkg
@@ -221,6 +350,7 @@ jobs:
           echo "VCPKG_FORCE_SYSTEM_BINARIES=1" >> $GITHUB_ENV
           echo "VCPKG_ALLOW_SYSTEM_LIBS=1" >> $GITHUB_ENV
           echo "MESON_CROSS_FILE=" >> $GITHUB_ENV
+          echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
           # Install system libsystemd development packages to avoid vcpkg building it
           sudo apt-get install -y libsystemd-dev libudev-dev
           # Create custom triplet to avoid libsystemd issues if needed
@@ -236,11 +366,24 @@ jobs:
           EOF
           # Check vcpkg version
           $HOME/vcpkg/vcpkg version
-          # Install packages individually to isolate issues
+          # Install packages with retry logic
            PACKAGES="qtbase qttools qtcharts qtsvg qtwebsockets qt5compat qtwayland gflags sdl2 fftw3 openssl cpr opencv protobuf glm libvpx"
            for pkg in $PACKAGES; do
              echo "Installing $pkg..."
-             $HOME/vcpkg/vcpkg install $pkg --triplet=x64-linux || echo "Failed to install $pkg, continuing..."
+             retry_count=0
+             max_retries=3
+             while [ $retry_count -lt $max_retries ]; do
+               if $HOME/vcpkg/vcpkg install $pkg --triplet=x64-linux --retry=3; then
+                 echo "Successfully installed $pkg"
+                 break
+               else
+                 retry_count=$((retry_count + 1))
+                 echo "Failed to install $pkg (attempt $retry_count/$max_retries), retrying..."
+                 if [ $retry_count -eq $max_retries ]; then
+                   echo "Failed to install $pkg after $max_retries attempts, continuing..."
+                 fi
+               fi
+             done
            done
 
       - name: Show info
