@@ -28,33 +28,64 @@ jobs:
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
+          set-safe-directory: true
       
       - name: Fix Submodule URLs
+        shell: bash
         run: |
           # Convert SSH URLs to HTTPS for submodules that don't have access
-          cd deps
-          for dir in tc_3rdparty; do
-            if [ -d "$dir" ]; then
-              cd "$dir"
-              if [ -f ".gitmodules" ]; then
-                echo "Fixing submodule URLs in $dir"
-                # Convert SSH URLs to HTTPS
-                sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-                # Update submodules
-                git submodule sync
-                # Initialize and update submodules
-                git submodule update --init --recursive --recommend-shallow-submodules --no-single-branch --force
-              fi
-              cd ..
-            fi
-          done
           
-          # Fix other submodules in root
+          echo "Current directory: $(pwd)"
+          echo "Listing .gitmodules files:"
+          find . -name ".gitmodules" -type f
+          
+          # Fix root submodules first
           if [ -f ".gitmodules" ]; then
             echo "Fixing root submodule URLs"
-            sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-            git submodule sync
-            git submodule update --init --recursive --recommend-shallow-submodules --no-single-branch --force
+            # Convert SSH URLs to HTTPS if any exist
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+            else
+              # Windows sed syntax
+              sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+            fi
+            echo "Updated .gitmodules content:"
+            cat .gitmodules
+            # Sync all submodules - use the correct syntax
+            git submodule sync || echo "git submodule sync failed, continuing..."
+            # Re-initialize and update submodules that may have failed
+            git submodule update --init --recursive --no-single-branch --force || echo "Some submodules may have failed to update, will handle in next step"
+          else
+            echo "No .gitmodules found in root"
+          fi
+          
+          # Handle tc_3rdparty specifically if it exists and has its own submodules
+          if [ -d "deps/tc_3rdparty" ] && [ -d "deps/tc_3rdparty/.git" ]; then
+            echo "tc_3rdparty exists and is a git repository"
+            cd deps/tc_3rdparty
+            if [ -f ".gitmodules" ]; then
+              echo "Fixing submodule URLs in tc_3rdparty"
+              echo "Current tc_3rdparty .gitmodules content:"
+              cat .gitmodules
+              # Convert SSH URLs to HTTPS if any exist
+              if [[ "$RUNNER_OS" == "Linux" ]]; then
+                sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+              else
+                # Windows sed syntax
+                sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+              fi
+              echo "Updated tc_3rdparty .gitmodules content:"
+              cat .gitmodules
+              # Sync all submodules - use the correct syntax
+              git submodule sync || echo "git submodule sync in tc_3rdparty failed, continuing..."
+              # Initialize and update submodules
+              git submodule update --init --recursive --no-single-branch --force || echo "Some tc_3rdparty submodules may have failed to update"
+            else
+              echo "No .gitmodules found in tc_3rdparty"
+            fi
+            cd ../..
+          else
+            echo "Directory deps/tc_3rdparty does not exist or is not a git repository"
           fi
 
       - name: Setup common tools (cmake, ninja, python)
