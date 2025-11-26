@@ -26,7 +26,7 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
-        modules: 'qtcharts qtwebsockets qt5compat qtsvg'
+        modules: 'qtcharts qtwebsockets qt5compat'
 
     - name: Set QT_ROOT env var
       shell: bash
