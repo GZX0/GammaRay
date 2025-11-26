@@ -136,6 +136,9 @@ if(NOT unofficial-libvpx_FOUND)
         set_target_properties(unofficial::libvpx::libvpx PROPERTIES
             IMPORTED_LOCATION "${LIBVPX_LIBRARY}"
             INTERFACE_INCLUDE_DIRECTORIES "${LIBVPX_INCLUDE_DIR}")
+        
+        # Set directory for subsequent find_package calls in submodules
+        set(unofficial-libvpx_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/unofficial-libvpx" CACHE PATH "Path to unofficial-libvpx config" FORCE)
     else()
         message(FATAL_ERROR "libvpx not found")
     endif()
@@ -152,6 +155,8 @@ if(NOT FFTW3_FOUND)
         set_target_properties(FFTW3::FFTW3 PROPERTIES
             IMPORTED_LOCATION "${FFTW3_LIBRARY}"
             INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR}")
+            
+        set(FFTW3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FFTW3" CACHE PATH "Path to FFTW3 config" FORCE)
     else()
         message(FATAL_ERROR "fftw3 not found")
     endif()
@@ -174,6 +179,7 @@ if(NOT cpr_FOUND)
         # Create a dummy target since cpr doesn't seem to be used
         add_library(cpr::cpr INTERFACE IMPORTED)
     endif()
+    set(cpr_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/cpr" CACHE PATH "Path to cpr config" FORCE)
 endif()
 
 qt_standard_project_setup(REQUIRES 6.5)
