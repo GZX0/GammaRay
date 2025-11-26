@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/deps/tc_3rdparty/vcpkg
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtcharts qtwebsockets qt5compat qtsvg'
+
+    - name: Set QT_ROOT env var
+      shell: bash
+      run: echo "QT_ROOT=${{ env.Qt6_DIR }}" >> $GITHUB_ENV
+
+    - name: Cache vcpkg
+      uses: actions/cache@v3
+      id: cache-vcpkg
+      with:
+        path: |
+          deps/tc_3rdparty/vcpkg/installed
+          deps/tc_3rdparty/vcpkg/packages
+          deps/tc_3rdparty/vcpkg/buildtrees
+          deps/tc_3rdparty/vcpkg/downloads
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/build.yml') }}
+
+    - name: Bootstrap vcpkg
+      working-directory: deps/tc_3rdparty/vcpkg
+      run: ./bootstrap-vcpkg.bat
+
+    - name: Install vcpkg dependencies
+      working-directory: deps/tc_3rdparty/vcpkg
+      run: |
+        ./vcpkg install gflags:x64-windows
+        ./vcpkg install sqlite3:x64-windows
+        ./vcpkg install detours:x64-windows
+        ./vcpkg install gtest:x64-windows
+        ./vcpkg install libvpx:x64-windows
+        ./vcpkg install opus:x64-windows
+        ./vcpkg install fftw3:x64-windows
+        ./vcpkg install easyhook:x64-windows
+        ./vcpkg install glm:x64-windows
+        ./vcpkg install sdl2:x64-windows
+        ./vcpkg install jemalloc:x64-windows
+        ./vcpkg install cpr:x64-windows
+        ./vcpkg install mongo-cxx-driver:x64-windows
+        ./vcpkg install drogon:x64-windows
+        ./vcpkg install breakpad:x64-windows-static
+        ./vcpkg install protobuf:x64-windows
+
+    - name: Configure CMake
+      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ env.VCPKG_ROOT }}" -DQT_ROOT="${{ env.QT_ROOT }}"
+
+    - name: Build
+      run: cmake --build build --config Release

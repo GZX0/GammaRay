@@ -151,9 +151,9 @@ find_path(DETOURS_INCLUDE_DIRS "detours/detours.h")
 set(ENABLE_HOOK_CAPTURE ON)
 
 set(Protobuf_SRC_ROOT_FOLDER ${GR_PROJECT_PATH}/deps/tc_3rdparty/protobuf)
-if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-    set(Protobuf_LIBRARIES ${GR_PROJECT_BINARY_PATH}/deps/tc_3rdparty/protobuf/cmake/libprotobuf.lib)
-endif()
+#if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+#    set(Protobuf_LIBRARIES ${GR_PROJECT_BINARY_PATH}/deps/tc_3rdparty/protobuf/cmake/libprotobuf.lib)
+#endif()
 find_package(Protobuf REQUIRED)
 
 set(OpenCV_ROOT ${GR_PROJECT_PATH}/deps/tc_3rdparty/opencv_410)
