@@ -67,6 +67,13 @@ jobs:
         ./vcpkg install breakpad:x64-windows-static
         ./vcpkg install protobuf:x64-windows
 
+    - name: Patch tc_3rdparty CMakeLists.txt
+      shell: bash
+      run: |
+        sed -i 's/add_subdirectory(abseil-cpp)/#add_subdirectory(abseil-cpp)/g' deps/tc_3rdparty/CMakeLists.txt
+        sed -i 's/add_subdirectory(protobuf)/#add_subdirectory(protobuf)/g' deps/tc_3rdparty/CMakeLists.txt
+        cat deps/tc_3rdparty/CMakeLists.txt
+
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ env.VCPKG_ROOT }}" -DQT_ROOT="${{ env.QT_ROOT }}"
 
