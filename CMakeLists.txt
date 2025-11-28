@@ -3,6 +3,9 @@ include(config.cmake)
 include(env_settings.cmake)
 include(version.cmake)
 
+file(TO_CMAKE_PATH "${VCPKG_ROOT}" VCPKG_ROOT)
+file(TO_CMAKE_PATH "${QT_ROOT}" QT_ROOT)
+
 set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
 set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
