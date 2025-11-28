@@ -125,7 +125,7 @@ link_directories(${VCPKG_ROOT}/installed/x64-windows/lib)
 link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC/static)
 
 if(MSVC)
-    add_compile_options($<IF:$<CONFIG:Debug>,/MTd,/MT>)
+    add_compile_options($<IF:$<CONFIG:Debug>,/MDd,/MD>)
     add_compile_options("/bigobj")
     include_directories(${FFMPEG_ROOT}/include)
     link_directories(${FFMPEG_ROOT}/lib)
@@ -143,7 +143,7 @@ endif()
 
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 add_compile_definitions(ASIO2_ENABLE_SSL) #ASIO2_ENABLE_LOG
-add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DENABLE_SSL=0 -D_AMD64_)#-DCMAKE_GENERATOR_PLATFORM=x64
+add_definitions(-DUNICODE -D_UNICODE -DNOMINMAX -DENABLE_SSL=0 -D_AMD64_)#-DCMAKE_GENERATOR_PLATFORM=x64
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
