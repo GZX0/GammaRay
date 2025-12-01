@@ -64,7 +64,7 @@ jobs:
         ./vcpkg install cpr:x64-windows
         ./vcpkg install mongo-cxx-driver:x64-windows
         ./vcpkg install drogon:x64-windows
-        ./vcpkg install breakpad:x64-windows-static
+        ./vcpkg install breakpad:x64-windows
         ./vcpkg install protobuf:x64-windows
 
     - name: Patch tc_3rdparty CMakeLists.txt
