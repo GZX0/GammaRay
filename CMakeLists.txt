@@ -220,8 +220,22 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Network Qt6::Cor
 )
 #set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
 #target_link_libraries(${PROJECT_NAME} PRIVATE ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
-find_package(breakpad CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE breakpad::breakpad_client)
+find_package(breakpad CONFIG)
+if(breakpad_FOUND)
+    message(STATUS "Found breakpad via CONFIG: ${breakpad_DIR}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE breakpad::breakpad_client)
+else()
+    message(WARNING "breakpad CONFIG not found, searching libraries manually")
+    find_library(BREAKPAD_LIB NAMES breakpad libbreakpad PATHS ${VCPKG_ROOT}/installed/x64-windows/lib NO_DEFAULT_PATH)
+    find_library(BREAKPAD_CLIENT_LIB NAMES breakpad_client libbreakpad_client PATHS ${VCPKG_ROOT}/installed/x64-windows/lib NO_DEFAULT_PATH)
+
+    if(BREAKPAD_LIB AND BREAKPAD_CLIENT_LIB)
+        message(STATUS "Found Breakpad libs: ${BREAKPAD_LIB}, ${BREAKPAD_CLIENT_LIB}")
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${BREAKPAD_LIB} ${BREAKPAD_CLIENT_LIB})
+    else()
+        message(FATAL_ERROR "Could not find breakpad libraries")
+    endif()
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${GR_PROJECT_BINARY_PATH}/gr_plugins
