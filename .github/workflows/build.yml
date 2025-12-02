@@ -66,6 +66,9 @@ jobs:
         ./vcpkg install drogon:x64-windows
         ./vcpkg install breakpad:x64-windows
         ./vcpkg install protobuf:x64-windows
+        
+        echo "Listing installed libraries:"
+        ls -R installed/x64-windows/lib
 
     - name: Patch tc_3rdparty CMakeLists.txt
       shell: bash
