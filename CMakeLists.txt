@@ -3,6 +3,9 @@ include(config.cmake)
 include(env_settings.cmake)
 include(version.cmake)
 
+file(TO_CMAKE_PATH "${VCPKG_ROOT}" VCPKG_ROOT)
+file(TO_CMAKE_PATH "${QT_ROOT}" QT_ROOT)
+
 set(CMAKE_PREFIX_PATH ${QT_ROOT}/lib/cmake)
 set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
@@ -117,20 +120,41 @@ include_directories(${GR_PROJECT_PATH}/src/render)
 include_directories(${GR_PROJECT_PATH}/src/ui/gd_gui/src)
 include_directories(${GR_PROJECT_PATH}/deps/tc_qt_widget)
 include_directories(${GR_PROJECT_PATH}/deps/tc_client_sdk_new)
-include_directories(${VCPKG_ROOT}/packages/breakpad_x64-windows-static/include)
+#include_directories(${VCPKG_ROOT}/packages/breakpad_x64-windows-static/include)
 
 link_directories(${VCPKG_ROOT}/installed/x64-windows/lib)
-link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC/static)
+#link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC/static)
 
 if(MSVC)
-    add_compile_options($<IF:$<CONFIG:Debug>,/MTd,/MT>)
+    add_compile_options($<IF:$<CONFIG:Debug>,/MDd,/MD>)
     add_compile_options("/bigobj")
+    
+    # Force /MD
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    
+    # Force all static library targets to use /MD
+    set(CompilerFlags
+        CMAKE_CXX_FLAGS
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL
+        CMAKE_CXX_FLAGS_RELWITHDEBINFO
+        CMAKE_C_FLAGS
+        CMAKE_C_FLAGS_DEBUG
+        CMAKE_C_FLAGS_RELEASE
+        CMAKE_C_FLAGS_MINSIZEREL
+        CMAKE_C_FLAGS_RELWITHDEBINFO
+    )
+    foreach(CompilerFlag ${CompilerFlags})
+        string(REPLACE "/MT" "/MD" ${CompilerFlag} "${${CompilerFlag}}")
+    endforeach()
+
     include_directories(${FFMPEG_ROOT}/include)
     link_directories(${FFMPEG_ROOT}/lib)
     link_directories(${LIBPLACEBO_ROOT}/lib)
 
-    include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/include)
-    link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC)
+    #include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/include)
+    #link_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/lib/VC)
 endif()
 
 if(MSVC)
@@ -152,9 +176,9 @@ find_path(DETOURS_INCLUDE_DIRS "detours/detours.h")
 set(ENABLE_HOOK_CAPTURE ON)
 
 set(Protobuf_SRC_ROOT_FOLDER ${GR_PROJECT_PATH}/deps/tc_3rdparty/protobuf)
-if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-    set(Protobuf_LIBRARIES ${GR_PROJECT_BINARY_PATH}/deps/tc_3rdparty/protobuf/cmake/libprotobuf.lib)
-endif()
+#if(CMAKE_BUILD_TYPE MATCHES "Release" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+#    set(Protobuf_LIBRARIES ${GR_PROJECT_BINARY_PATH}/deps/tc_3rdparty/protobuf/cmake/libprotobuf.lib)
+#endif()
 find_package(Protobuf REQUIRED)
 
 set(OpenCV_ROOT ${GR_PROJECT_PATH}/deps/tc_3rdparty/opencv_410)
@@ -204,8 +228,24 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Network Qt6::Cor
         tc_relay_client tc_translator tc_spvr_client Dwmapi.lib tc_widget_loadings tc_client_plugin #QWindowKit::Widgets TC_WidgetFrame
         tc_account_sdk tc_rp_message tc_profile_client tc_hw_info tc_global_id_generator tc_server_message skin_interface skin_loader gd_gui
 )
-set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+#set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
+#target_link_libraries(${PROJECT_NAME} PRIVATE ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+find_package(breakpad CONFIG)
+if(breakpad_FOUND)
+    message(STATUS "Found breakpad via CONFIG: ${breakpad_DIR}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE breakpad::breakpad_client)
+else()
+    message(WARNING "breakpad CONFIG not found, searching libraries manually")
+    find_library(BREAKPAD_LIB NAMES breakpad libbreakpad PATHS ${VCPKG_ROOT}/installed/x64-windows/lib NO_DEFAULT_PATH)
+    find_library(BREAKPAD_CLIENT_LIB NAMES breakpad_client libbreakpad_client PATHS ${VCPKG_ROOT}/installed/x64-windows/lib NO_DEFAULT_PATH)
+
+    if(BREAKPAD_LIB AND BREAKPAD_CLIENT_LIB)
+        message(STATUS "Found Breakpad libs: ${BREAKPAD_LIB}, ${BREAKPAD_CLIENT_LIB}")
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${BREAKPAD_LIB} ${BREAKPAD_CLIENT_LIB})
+    else()
+        message(FATAL_ERROR "Could not find breakpad libraries")
+    endif()
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${GR_PROJECT_BINARY_PATH}/gr_plugins
