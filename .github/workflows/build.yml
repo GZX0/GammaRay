@@ -77,10 +77,24 @@ jobs:
         sed -i 's/add_subdirectory(protobuf)/#add_subdirectory(protobuf)/g' deps/tc_3rdparty/CMakeLists.txt
         cat deps/tc_3rdparty/CMakeLists.txt
         
-        # Patch hardcoded breakpad paths in all CMakeLists.txt
+        # Determine correct breakpad library names
+        LIB_PATH="deps/tc_3rdparty/vcpkg/installed/x64-windows/lib"
+        
+        echo "Checking breakpad libs in $LIB_PATH..."
+        ls -l "$LIB_PATH"/*breakpad* || true
+        
+        # Patch the path first
         find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i 's|\${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib|\${VCPKG_ROOT}/installed/x64-windows/lib|g'
-        find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i 's|libbreakpad.lib|breakpad.lib|g'
-        find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i 's|libbreakpad_client.lib|breakpad_client.lib|g'
+        
+        if [ -f "$LIB_PATH/breakpad.lib" ]; then
+            echo "Detected breakpad.lib, patching filenames..."
+            find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i 's|libbreakpad.lib|breakpad.lib|g'
+        fi
+        
+        if [ -f "$LIB_PATH/breakpad_client.lib" ]; then
+            echo "Detected breakpad_client.lib, patching filenames..."
+            find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i 's|libbreakpad_client.lib|breakpad_client.lib|g'
+        fi
 
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ env.VCPKG_ROOT }}" -DQT_ROOT="${{ env.QT_ROOT }}"
