@@ -1,0 +1,92 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.5.3'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qt5compat qtcharts qtsvg qtwebsockets'
+          cache: true
+
+      - name: Export Qt root
+        shell: pwsh
+        run: |
+          if (-not $env:Qt6_DIR) { throw 'Qt6_DIR was not set by install-qt-action.' }
+          "QT_ROOT=$env:Qt6_DIR" >> $env:GITHUB_ENV
+
+      - name: Ensure vcpkg is present
+        shell: pwsh
+        run: |
+          $vcpkgRoot = Join-Path $env:GITHUB_WORKSPACE 'deps/tc_3rdparty/vcpkg'
+          if (-not (Test-Path $vcpkgRoot)) {
+            git clone https://github.com/microsoft/vcpkg $vcpkgRoot
+          }
+          "VCPKG_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Cache vcpkg artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps/tc_3rdparty/vcpkg/installed
+            deps/tc_3rdparty/vcpkg/downloads
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('docs/How_to_build.md') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat"
+
+      - name: Install vcpkg dependencies
+        shell: pwsh
+        run: |
+          $packages = @(
+            'gflags:x64-windows',
+            'sqlite3:x64-windows',
+            'detours:x64-windows',
+            'gtest:x64-windows',
+            'libvpx:x64-windows',
+            'opus:x64-windows',
+            'fftw3:x64-windows',
+            'easyhook:x64-windows',
+            'glm:x64-windows',
+            'sdl2:x64-windows',
+            'jemalloc:x64-windows',
+            'cpr:x64-windows',
+            'mongo-cxx-driver:x64-windows',
+            'drogon:x64-windows',
+            'breakpad:x64-windows-static'
+          )
+          foreach ($package in $packages) {
+            & "$env:VCPKG_ROOT/vcpkg.exe" install $package
+          }
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DVCPKG_ROOT="$env:VCPKG_ROOT" `
+            -DQT_ROOT="$env:QT_ROOT" `
+            -DBUILD_FROM="CI" `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release -- /m
