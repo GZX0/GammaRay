@@ -95,6 +95,7 @@ jobs:
         run: |
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
             -DVCPKG_ROOT="$env:VCPKG_ROOT" `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DQT_ROOT="$env:QT_ROOT" `
             -DBUILD_FROM="CI" `
             -DCMAKE_BUILD_TYPE=Release
