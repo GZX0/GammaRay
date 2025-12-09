@@ -26,8 +26,14 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          modules: 'qt5compat qtcharts qtsvg qtwebsockets'
+          modules: 'qt5compat qtcharts qtwebsockets'
           cache: true
+          cache-key-prefix: install-qt-action
+          install-deps: true
+          add-tools-to-path: true
+          set-env: true
+          aqtversion: '==3.1.*'
+          py7zrversion: '==0.20.*'
           setup-python: false
 
       - name: Export Qt root
