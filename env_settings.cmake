@@ -10,7 +10,7 @@ if(NOT DEFINED QT_ROOT OR QT_ROOT STREQUAL "")
     if(DEFINED ENV{QT_ROOT} AND NOT "$ENV{QT_ROOT}" STREQUAL "")
         set(QT_ROOT "$ENV{QT_ROOT}")
     else()
-        set(QT_ROOT C:/Qt/6.6.3/msvc2019_64)
+        set(QT_ROOT C:/Qt/6.7.2/msvc2022_64)
     endif()
 endif()
 
