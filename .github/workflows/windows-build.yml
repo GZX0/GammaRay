@@ -40,7 +40,8 @@ jobs:
         shell: pwsh
         run: |
           if (-not $env:Qt6_DIR) { throw 'Qt6_DIR was not set by install-qt-action.' }
-          "QT_ROOT=$env:Qt6_DIR" >> $env:GITHUB_ENV
+          $qtRoot = $env:Qt6_DIR -replace '\\', '/'
+          "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
 
       - name: Ensure vcpkg is present
         shell: pwsh
@@ -49,7 +50,12 @@ jobs:
           if (-not (Test-Path $vcpkgRoot)) {
             git clone https://github.com/microsoft/vcpkg $vcpkgRoot
           }
+          $vcpkgRootCMake = $vcpkgRoot -replace '\\', '/'
+          $toolchainFile = Join-Path $vcpkgRoot 'scripts/buildsystems/vcpkg.cmake'
+          $toolchainFileCMake = $toolchainFile -replace '\\', '/'
           "VCPKG_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
+          "VCPKG_ROOT_CMAKE=$vcpkgRootCMake" >> $env:GITHUB_ENV
+          "CMAKE_TOOLCHAIN_FILE=$toolchainFileCMake" >> $env:GITHUB_ENV
 
       - name: Cache vcpkg artifacts
         uses: actions/cache@v4
@@ -94,8 +100,8 @@ jobs:
         shell: pwsh
         run: |
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
-            -DVCPKG_ROOT="$env:VCPKG_ROOT" `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_ROOT="$env:VCPKG_ROOT_CMAKE" `
+            -DCMAKE_TOOLCHAIN_FILE="$env:CMAKE_TOOLCHAIN_FILE" `
             -DQT_ROOT="$env:QT_ROOT" `
             -DBUILD_FROM="CI" `
             -DCMAKE_BUILD_TYPE=Release
