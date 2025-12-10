@@ -26,7 +26,7 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          modules: 'qt5compat qtcharts qtwebsockets'
+          modules: 'qt5compat qtcharts qtsvg qtwebsockets'
           cache: true
           cache-key-prefix: install-qt-action
           install-deps: true
