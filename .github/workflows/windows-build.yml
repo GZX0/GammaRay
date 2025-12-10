@@ -22,10 +22,10 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.5.3'
+          version: '6.6.3'
           host: 'windows'
           target: 'desktop'
-          arch: 'win64_msvc2019_64'
+          arch: 'win64_msvc2022_64'
           modules: 'qt5compat qtcharts qtsvg qtwebsockets'
           cache: true
           cache-key-prefix: install-qt-action
@@ -34,7 +34,7 @@ jobs:
           set-env: true
           aqtversion: '==3.1.*'
           py7zrversion: '==0.20.*'
-          setup-python: false
+          setup-python: true
 
       - name: Export Qt root
         shell: pwsh
