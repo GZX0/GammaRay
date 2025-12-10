@@ -33,6 +33,7 @@ jobs:
           add-tools-to-path: true
           set-env: true
           setup-python: true
+          aqtversion: '==3.2.*'
 
       - name: Export Qt root
         shell: pwsh
